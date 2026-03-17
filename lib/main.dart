@@ -131,7 +131,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     await _tarefaService.alternarStatusTarefa(id, statusAtual);
   }
 
-  Future<void> _deletarTarefa(String id) async {
+  Future<bool> _deletarTarefa(String id) async {
     bool? confirmarExclusao = await showDialog<bool>(
       context: context,
       builder: (BuildContext context) {
@@ -155,8 +155,26 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
 
     if (confirmarExclusao == true) {
+      // 1. Deleta do banco
       await _tarefaService.deletarTarefa(id);
+      
+      // 2. Verifica se a tela ainda existe antes de mostrar o aviso
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Tarefa apagada com sucesso!'),
+            backgroundColor: Colors.red.shade400,
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating, // Deixa a barrinha flutuando, mais moderno
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+      
+      return true; // Retorna true para confirmar que a tarefa foi apagada pro Dismissible
     }
+    
+    return false; // Retorna false se o usuário cancelou (o card volta pro lugar)
   }
 
   @override
