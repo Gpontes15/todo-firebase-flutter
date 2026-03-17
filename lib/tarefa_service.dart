@@ -4,12 +4,14 @@ class TarefaService {
   final CollectionReference _tarefas = FirebaseFirestore.instance.collection('tarefas');
 
   // CREATE - Agora salvando a data exata da criação!
-  Future<void> adicionarTarefa(String nome) async {
+  // CREATE - Agora aceita uma data de vencimento opcional
+  Future<void> adicionarTarefa(String nome, {DateTime? dataVencimento}) async {
     await _tarefas.add({
       "nome": nome, 
       "concluida": false,
-      // Pede para o servidor do Firebase carimbar a hora exata
       "dataCriacao": FieldValue.serverTimestamp(), 
+      // Salva a data apenas se o usuário tiver escolhido uma
+      "dataVencimento": dataVencimento, 
     });
   }
 

@@ -55,14 +55,19 @@ class _TodoListScreenState extends State<TodoListScreen> {
   FiltroTarefa _filtroAtual = FiltroTarefa.todas;
 
   void _abrirModalTarefa([DocumentSnapshot? documentoAtual]) {
-    // 1. Prepara o modal: se tiver documento, preenche o campo. Se não, limpa.
+    // Variável para guardar a data que o usuário escolher no calendário
+    DateTime? dataSelecionada;
+
     if (documentoAtual != null) {
       _controladorTexto.text = documentoAtual['nome'];
+      // Se já existir uma data salva no banco, recuperamos ela (vamos usar depois na edição)
+      if (documentoAtual.data().toString().contains('dataVencimento') && documentoAtual['dataVencimento'] != null) {
+        dataSelecionada = (documentoAtual['dataVencimento'] as Timestamp).toDate();
+      }
     } else {
       _controladorTexto.text = '';
     }
 
-    // 2. Desenha o modal na tela
     showModalBottomSheet(
         context: context,
         isScrollControlled: true,
@@ -70,64 +75,103 @@ class _TodoListScreenState extends State<TodoListScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
         ),
         builder: (BuildContext ctx) {
-          return Padding(
-            padding: EdgeInsets.only(
-                top: 24,
-                left: 24,
-                right: 24,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Text(
-                  documentoAtual != null ? 'Editar Tarefa' : 'Nova Tarefa',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _controladorTexto,
-                  autofocus: true,
-                  decoration: InputDecoration(
-                    labelText: 'Nome da Tarefa',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+          // O StatefulBuilder é o TRUQUE para a tela do modal atualizar quando escolhermos a data
+          return StatefulBuilder(
+            builder: (BuildContext context, StateSetter setModalState) {
+              return Padding(
+                padding: EdgeInsets.only(
+                    top: 24,
+                    left: 24,
+                    right: 24,
+                    bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      documentoAtual != null ? 'Editar Tarefa' : 'Nova Tarefa',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _controladorTexto,
+                      autofocus: true,
+                      decoration: InputDecoration(
+                        labelText: 'Nome da Tarefa',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    documentoAtual != null ? 'Atualizar' : 'Adicionar',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                  onPressed: () async {
-                    // 3. A LÓGICA DE SALVAR FICA AQUI, APÓS O CLIQUE DO USUÁRIO
-                    final String nomeTarefa = _controladorTexto.text;
+                    const SizedBox(height: 16),
                     
-                    if (nomeTarefa.isNotEmpty) {
-                      if (documentoAtual != null) {
-                        // Chama o SERVIÇO para atualizar
-                        await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
-                      } else {
-                        // Chama o SERVIÇO para criar
-                        await _tarefaService.adicionarTarefa(nomeTarefa);
-                      }
-                      
-                      _controladorTexto.text = '';
-                      if (context.mounted) Navigator.of(context).pop();
-                    }
-                  },
-                )
-              ],
-            ),
+                    // --- NOSSO BOTÃO DE CALENDÁRIO AQUI ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          dataSelecionada == null 
+                            ? 'Nenhuma data definida' 
+                            : 'Data: ${dataSelecionada!.day}/${dataSelecionada!.month}/${dataSelecionada!.year}',
+                          style: TextStyle(color: Colors.grey.shade700),
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.calendar_month),
+                          label: const Text('Escolher Data'),
+                          onPressed: () async {
+                            // Abre o calendário do sistema
+                            final DateTime? dataEscolhida = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(), // Começa em hoje
+                              firstDate: DateTime.now(),   // Não deixa escolher dias no passado
+                              lastDate: DateTime(2030),    // Vai até 2030
+                            );
+
+                            // Se o usuário escolheu uma data e clicou em OK
+                            if (dataEscolhida != null) {
+                              setModalState(() {
+                                dataSelecionada = dataEscolhida; // Atualiza o visual do modal!
+                              });
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        documentoAtual != null ? 'Atualizar' : 'Adicionar',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                      onPressed: () async {
+                        final String nomeTarefa = _controladorTexto.text;
+                        
+                        if (nomeTarefa.isNotEmpty) {
+                          if (documentoAtual != null) {
+                            await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
+                            // Desafio para depois: atualizar a data no Firebase também na edição!
+                          } else {
+                            // Passando a data para o nosso serviço salvar!
+                            await _tarefaService.adicionarTarefa(nomeTarefa, dataVencimento: dataSelecionada);
+                          }
+                          
+                          _controladorTexto.text = '';
+                          if (context.mounted) Navigator.of(context).pop();
+                        }
+                      },
+                    )
+                  ],
+                ),
+              );
+            }
           );
         });
   }
@@ -247,17 +291,41 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       final DocumentSnapshot documento = documentos[index];
                       final idDaTarefa = documento.id;
                       final bool estaConcluida = documento['concluida'];
+                      
+                      // Lógica para pegar a data (se ela existir no documento)
+                      DateTime? dataExtraida;
+                      // Checamos se o campo existe para não dar erro nas tarefas antigas
+                      if (documento.data().toString().contains('dataVencimento') && documento['dataVencimento'] != null) {
+                        // O Firebase salva como Timestamp, então convertemos para o DateTime do Dart
+                        dataExtraida = (documento['dataVencimento'] as Timestamp).toDate();
+                      }
 
-                      return TarefaItem(
-                        nome: documento['nome'],
-                        estaConcluida: estaConcluida,
-                        onChanged: (bool? novoValor) {
-                          _atualizarTarefa(idDaTarefa, estaConcluida);
+                      return Dismissible(
+                        key: Key(idDaTarefa),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade400,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.delete_sweep, color: Colors.white, size: 32),
+                        ),
+                        confirmDismiss: (direction) async {
+                          return await _deletarTarefa(idDaTarefa);
                         },
-                        onEdit: () => _abrirModalTarefa(documento),
-                        onDelete: () async {
-                          await _deletarTarefa(idDaTarefa);
-                        },
+                        child: TarefaItem(
+                          nome: documento['nome'],
+                          estaConcluida: estaConcluida,
+                          dataVencimento: dataExtraida, // Passamos a data extraída para o componente!
+                          onChanged: (bool? novoValor) {
+                            _atualizarTarefa(idDaTarefa, estaConcluida);
+                          },
+                          onEdit: () => _abrirModalTarefa(documento),
+                          onDelete: () => _deletarTarefa(idDaTarefa),
+                        ),
                       );
                     },
                   );

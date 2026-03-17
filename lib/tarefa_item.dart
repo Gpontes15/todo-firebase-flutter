@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
 class TarefaItem extends StatelessWidget {
- 
   final String nome;
   final bool estaConcluida;
+  // Nova variável: pode ser nula porque nem toda tarefa tem data
+  final DateTime? dataVencimento; 
   
   final Function(bool?) onChanged; 
-  
   final VoidCallback onEdit;
   final VoidCallback onDelete;
 
@@ -14,6 +14,7 @@ class TarefaItem extends StatelessWidget {
     super.key,
     required this.nome,
     required this.estaConcluida,
+    this.dataVencimento, // Adicionado aqui (sem o required, pois é opcional)
     required this.onChanged,
     required this.onEdit,
     required this.onDelete,
@@ -38,6 +39,29 @@ class TarefaItem extends StatelessWidget {
             decoration: estaConcluida ? TextDecoration.lineThrough : null,
           ),
         ),
+        
+        // --- A MÁGICA ACONTECE AQUI NO SUBTITLE ---
+        // Só mostramos o subtítulo se a data não for nula
+        subtitle: dataVencimento != null 
+          ? Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Row(
+                children: [
+                  Icon(Icons.event, size: 14, color: estaConcluida ? Colors.grey : Colors.indigo.shade300),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${dataVencimento!.day}/${dataVencimento!.month}/${dataVencimento!.year}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: estaConcluida ? Colors.grey : Colors.indigo.shade400,
+                      decoration: estaConcluida ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : null, // Se for nula, o Flutter ignora e não desenha nada
+          
         leading: Transform.scale(
           scale: 1.2,
           child: Checkbox(
