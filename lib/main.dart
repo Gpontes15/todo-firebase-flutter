@@ -37,6 +37,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
+enum FiltroTarefa { todas, pendentes, concluidas }
+
 class TodoListScreen extends StatefulWidget {
   const TodoListScreen({super.key});
 
@@ -48,6 +50,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
   // Instância do nosso Serviço isolado
   final TarefaService _tarefaService = TarefaService();
   final TextEditingController _controladorTexto = TextEditingController();
+  
+  // O app sempre começa mostrando "Todas"
+  FiltroTarefa _filtroAtual = FiltroTarefa.todas;
 
   void _abrirModalTarefa([DocumentSnapshot? documentoAtual]) {
     // 1. Prepara o modal: se tiver documento, preenche o campo. Se não, limpa.
@@ -183,49 +188,87 @@ class _TodoListScreenState extends State<TodoListScreen> {
       appBar: AppBar(
         title: const Text('Minhas Tarefas', style: TextStyle(fontWeight: FontWeight.w600)),
       ),
-      body: StreamBuilder(
-        stream: _tarefaService.getTarefasStream(), // Escutando através do serviço
-        builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
-          if (streamSnapshot.hasData) {
-            final documentos = streamSnapshot.data!.docs;
-            
-            if (documentos.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.task_alt, size: 80, color: Colors.grey.shade300),
-                    const SizedBox(height: 16),
-                    Text('Nenhuma tarefa ainda.', style: TextStyle(color: Colors.grey.shade600, fontSize: 18)),
-                  ],
-                ),
-              );
-            }
-
-            return ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: documentos.length,
-              itemBuilder: (context, index) {
-                final DocumentSnapshot documento = documentos[index];
-                final idDaTarefa = documento.id;
-                final bool estaConcluida = documento['concluida'];
-
-                // Usando nosso Componente Customizado
-                return TarefaItem(
-                  nome: documento['nome'],
-                  estaConcluida: estaConcluida,
-                  onChanged: (bool? novoValor) {
-                    _atualizarTarefa(idDaTarefa, estaConcluida);
-                  },
-                  onEdit: () => _abrirModalTarefa(documento),
-                  onDelete: () => _deletarTarefa(idDaTarefa),
-                );
+      body: Column(
+        children: [
+          // BOTÕES DE FILTRO
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SegmentedButton<FiltroTarefa>(
+              segments: const [
+                ButtonSegment(value: FiltroTarefa.todas, label: Text('Todas')),
+                ButtonSegment(value: FiltroTarefa.pendentes, label: Text('Pendentes')),
+                ButtonSegment(value: FiltroTarefa.concluidas, label: Text('Concluídas')),
+              ],
+              selected: {_filtroAtual},
+              onSelectionChanged: (Set<FiltroTarefa> novaSelecao) {
+                // O setState avisa o Flutter para desenhar a tela de novo!
+                setState(() {
+                  _filtroAtual = novaSelecao.first;
+                });
               },
-            );
-          }
-          return const Center(child: CircularProgressIndicator());
-        },
+            ),
+          ),
+
+          // A LISTA DE TAREFAS (Ocupando o resto da tela com o Expanded)
+          Expanded(
+            child: StreamBuilder(
+              stream: _tarefaService.getTarefasStream(),
+              builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
+                if (streamSnapshot.hasData) {
+                  // Pegamos todos os documentos do banco
+                  var documentos = streamSnapshot.data!.docs;
+
+                  // A LÓGICA DO FILTRO ACONTECE AQUI NO DART:
+                  if (_filtroAtual == FiltroTarefa.pendentes) {
+                    // Filtra mantendo apenas as que têm concluida == false
+                    documentos = documentos.where((doc) => doc['concluida'] == false).toList();
+                  } else if (_filtroAtual == FiltroTarefa.concluidas) {
+                    // Filtra mantendo apenas as que têm concluida == true
+                    documentos = documentos.where((doc) => doc['concluida'] == true).toList();
+                  }
+                  
+                  if (documentos.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.task_alt, size: 80, color: Colors.grey.shade300),
+                          const SizedBox(height: 16),
+                          Text('Nenhuma tarefa aqui.', style: TextStyle(color: Colors.grey.shade600, fontSize: 18)),
+                        ],
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    itemCount: documentos.length,
+                    itemBuilder: (context, index) {
+                      final DocumentSnapshot documento = documentos[index];
+                      final idDaTarefa = documento.id;
+                      final bool estaConcluida = documento['concluida'];
+
+                      return TarefaItem(
+                        nome: documento['nome'],
+                        estaConcluida: estaConcluida,
+                        onChanged: (bool? novoValor) {
+                          _atualizarTarefa(idDaTarefa, estaConcluida);
+                        },
+                        onEdit: () => _abrirModalTarefa(documento),
+                        onDelete: () async {
+                          await _deletarTarefa(idDaTarefa);
+                        },
+                      );
+                    },
+                  );
+                }
+                return const Center(child: CircularProgressIndicator());
+              },
+            ),
+          ),
+        ],
       ),
+
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _abrirModalTarefa(),
         icon: const Icon(Icons.add),
