@@ -112,7 +112,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // --- O INTERRUPTOR DE "DIA TODO" ---
                     SwitchListTile(
                       title: const Text('Dia todo'),
                       subtitle: const Text('Avisa no dia anterior às 09:00'),
@@ -121,12 +120,11 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       onChanged: (bool valor) {
                         setModalState(() {
                           diaTodo = valor;
-                          if (diaTodo) horaSelecionada = null; // Limpa a hora se for o dia todo
+                          if (diaTodo) horaSelecionada = null; 
                         });
                       },
                     ),
 
-                    // --- BOTÃO DO CALENDÁRIO ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -162,7 +160,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       ],
                     ),
 
-                    // --- BOTÃO DO RELÓGIO ---
                     if (!diaTodo)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -213,20 +210,19 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
                           } else {
                             
-                            // 1. Salva a tarefa e pega o ID gerado pelo Firebase
                             final idGerado = await _tarefaService.adicionarTarefa(
                               nomeTarefa, 
                               dataVencimento: dataSelecionada,
                               diaTodo: diaTodo
                             );
 
-                            // 2. LÓGICA DO ALARME
-                            // Se o usuário escolheu uma data e o Firebase devolveu o ID com sucesso:
+                            // O teste imediato está comentado para não atrapalhar o teste real
+                            // await NotificacaoService().mostrarNotificacaoImediata();
+
                             if (dataSelecionada != null && idGerado != null) {
                               DateTime dataAlarme = dataSelecionada!;
 
                               if (diaTodo) {
-                                // Se for o dia todo, volta 1 dia e crava às 09:00 da manhã
                                 dataAlarme = DateTime(
                                   dataSelecionada!.year, 
                                   dataSelecionada!.month, 
@@ -235,10 +231,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                 );
                               }
 
-                              // O Dart só permite agendar alarmes para o futuro
                               if (dataAlarme.isAfter(DateTime.now())) {
                                 await NotificacaoService().agendarNotificacao(
-                                  id: idGerado.hashCode,
+                                  id: idGerado.hashCode.abs(), // <-- .abs() adicionado aqui!
                                   titulo: diaTodo ? 'Amanhã: $nomeTarefa' : 'Lembrete de Tarefa',
                                   corpo: diaTodo ? 'Você tem uma tarefa pendente para amanhã!' : 'Sua tarefa está próxima do prazo.',
                                   dataAgendada: dataAlarme,
@@ -260,14 +255,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
   }
 
   Future<void> _atualizarTarefa(String id, bool statusAtual) async {
-    // Se estava pendente (false), vai virar concluída (true)
     bool vaiConcluir = !statusAtual;
     
     await _tarefaService.alternarStatusTarefa(id, statusAtual);
 
-    // Se o usuário marcou como concluída, nós desarmamos a bomba!
     if (vaiConcluir) {
-      await NotificacaoService().cancelarNotificacao(id.hashCode);
+      await NotificacaoService().cancelarNotificacao(id.hashCode.abs()); // <-- .abs() adicionado aqui!
     }
   }
 
@@ -295,11 +288,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
 
     if (confirmarExclusao == true) {
-      // 1. Deleta do banco de dados
       await _tarefaService.deletarTarefa(id);
       
-      // 2. Apaga o alarme do celular para não tocar à toa
-      await NotificacaoService().cancelarNotificacao(id.hashCode);
+      await NotificacaoService().cancelarNotificacao(id.hashCode.abs()); // <-- .abs() adicionado aqui!
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
