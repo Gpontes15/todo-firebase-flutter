@@ -47,22 +47,24 @@ class TodoListScreen extends StatefulWidget {
 }
 
 class _TodoListScreenState extends State<TodoListScreen> {
-  // Instância do nosso Serviço isolado
   final TarefaService _tarefaService = TarefaService();
   final TextEditingController _controladorTexto = TextEditingController();
   
-  // O app sempre começa mostrando "Todas"
   FiltroTarefa _filtroAtual = FiltroTarefa.todas;
 
   void _abrirModalTarefa([DocumentSnapshot? documentoAtual]) {
-    // Variável para guardar a data que o usuário escolher no calendário
     DateTime? dataSelecionada;
+    TimeOfDay? horaSelecionada; 
+    bool diaTodo = false;       
 
     if (documentoAtual != null) {
       _controladorTexto.text = documentoAtual['nome'];
-      // Se já existir uma data salva no banco, recuperamos ela (vamos usar depois na edição)
       if (documentoAtual.data().toString().contains('dataVencimento') && documentoAtual['dataVencimento'] != null) {
         dataSelecionada = (documentoAtual['dataVencimento'] as Timestamp).toDate();
+        horaSelecionada = TimeOfDay(hour: dataSelecionada!.hour, minute: dataSelecionada!.minute);
+      }
+      if (documentoAtual.data().toString().contains('diaTodo')) {
+        diaTodo = documentoAtual['diaTodo'] ?? false;
       }
     } else {
       _controladorTexto.text = '';
@@ -75,7 +77,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
         ),
         builder: (BuildContext ctx) {
-          // O StatefulBuilder é o TRUQUE para a tela do modal atualizar quando escolhermos a data
           return StatefulBuilder(
             builder: (BuildContext context, StateSetter setModalState) {
               return Padding(
@@ -99,53 +100,102 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       autofocus: true,
                       decoration: InputDecoration(
                         labelText: 'Nome da Tarefa',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    
-                    // --- NOSSO BOTÃO DE CALENDÁRIO AQUI ---
+
+                    // --- O INTERRUPTOR DE "DIA TODO" ---
+                    SwitchListTile(
+                      title: const Text('Dia todo'),
+                      subtitle: const Text('Avisa no dia anterior'),
+                      value: diaTodo,
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (bool valor) {
+                        setModalState(() {
+                          diaTodo = valor;
+                          if (diaTodo) horaSelecionada = null; // Limpa a hora se for o dia todo
+                        });
+                      },
+                    ),
+
+                    // --- BOTÃO DO CALENDÁRIO ---
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           dataSelecionada == null 
-                            ? 'Nenhuma data definida' 
+                            ? 'Nenhuma data' 
                             : 'Data: ${dataSelecionada!.day}/${dataSelecionada!.month}/${dataSelecionada!.year}',
-                          style: TextStyle(color: Colors.grey.shade700),
                         ),
                         TextButton.icon(
                           icon: const Icon(Icons.calendar_month),
                           label: const Text('Escolher Data'),
                           onPressed: () async {
-                            // Abre o calendário do sistema
                             final DateTime? dataEscolhida = await showDatePicker(
                               context: context,
-                              initialDate: DateTime.now(), // Começa em hoje
-                              firstDate: DateTime.now(),   // Não deixa escolher dias no passado
-                              lastDate: DateTime(2030),    // Vai até 2030
+                              initialDate: dataSelecionada ?? DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(2030),
                             );
-
-                            // Se o usuário escolheu uma data e clicou em OK
                             if (dataEscolhida != null) {
                               setModalState(() {
-                                dataSelecionada = dataEscolhida; // Atualiza o visual do modal!
+                                // Preserva a hora se já tinha sido escolhida
+                                if (horaSelecionada != null) {
+                                  dataSelecionada = DateTime(
+                                    dataEscolhida.year, dataEscolhida.month, dataEscolhida.day,
+                                    horaSelecionada!.hour, horaSelecionada!.minute
+                                  );
+                                } else {
+                                  dataSelecionada = dataEscolhida;
+                                }
                               });
                             }
                           },
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
 
+                    // --- BOTÃO DO RELÓGIO (SÓ APARECE SE NÃO FOR "DIA TODO") ---
+                    if (!diaTodo)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            horaSelecionada == null 
+                              ? 'Nenhuma hora' 
+                              : 'Hora: ${horaSelecionada!.format(context)}',
+                          ),
+                          TextButton.icon(
+                            icon: const Icon(Icons.access_time),
+                            label: const Text('Escolher Hora'),
+                            onPressed: () async {
+                              final TimeOfDay? horaEscolhida = await showTimePicker(
+                                context: context,
+                                initialTime: horaSelecionada ?? TimeOfDay.now(),
+                              );
+                              if (horaEscolhida != null) {
+                                setModalState(() {
+                                  horaSelecionada = horaEscolhida;
+                                  // Se já tinha data, junta a data com a nova hora
+                                  if (dataSelecionada != null) {
+                                    dataSelecionada = DateTime(
+                                      dataSelecionada!.year, dataSelecionada!.month, dataSelecionada!.day,
+                                      horaEscolhida.hour, horaEscolhida.minute
+                                    );
+                                  }
+                                });
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      
+                    const SizedBox(height: 20),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: Text(
                         documentoAtual != null ? 'Atualizar' : 'Adicionar',
@@ -153,16 +203,17 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       ),
                       onPressed: () async {
                         final String nomeTarefa = _controladorTexto.text;
-                        
                         if (nomeTarefa.isNotEmpty) {
                           if (documentoAtual != null) {
                             await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
-                            // Desafio para depois: atualizar a data no Firebase também na edição!
+                            // Desafio para depois: atualizar data/hora na edição
                           } else {
-                            // Passando a data para o nosso serviço salvar!
-                            await _tarefaService.adicionarTarefa(nomeTarefa, dataVencimento: dataSelecionada);
+                            await _tarefaService.adicionarTarefa(
+                              nomeTarefa, 
+                              dataVencimento: dataSelecionada,
+                              diaTodo: diaTodo // Passamos o novo booleano para o Firebase!
+                            );
                           }
-                          
                           _controladorTexto.text = '';
                           if (context.mounted) Navigator.of(context).pop();
                         }

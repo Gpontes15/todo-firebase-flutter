@@ -3,15 +3,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class TarefaService {
   final CollectionReference _tarefas = FirebaseFirestore.instance.collection('tarefas');
 
-  // CREATE - Agora salvando a data exata da criação!
-  // CREATE - Agora aceita uma data de vencimento opcional
-  Future<void> adicionarTarefa(String nome, {DateTime? dataVencimento}) async {
+  Future<void> adicionarTarefa(String nome, {DateTime? dataVencimento, bool diaTodo = false}) async {
     await _tarefas.add({
       "nome": nome, 
       "concluida": false,
       "dataCriacao": FieldValue.serverTimestamp(), 
-      // Salva a data apenas se o usuário tiver escolhido uma
       "dataVencimento": dataVencimento, 
+      "diaTodo": diaTodo,
     });
   }
 
