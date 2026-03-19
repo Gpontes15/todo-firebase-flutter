@@ -4,12 +4,19 @@ import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'tarefa_item.dart';
 import 'tarefa_service.dart';
+import 'notificacao_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inicializa o Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Inicializa o motor de notificações
+  await NotificacaoService().init();
+
   runApp(const MyApp());
 }
 
@@ -108,7 +115,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     // --- O INTERRUPTOR DE "DIA TODO" ---
                     SwitchListTile(
                       title: const Text('Dia todo'),
-                      subtitle: const Text('Avisa no dia anterior'),
+                      subtitle: const Text('Avisa no dia anterior às 09:00'),
                       value: diaTodo,
                       contentPadding: EdgeInsets.zero,
                       onChanged: (bool valor) {
@@ -140,7 +147,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             );
                             if (dataEscolhida != null) {
                               setModalState(() {
-                                // Preserva a hora se já tinha sido escolhida
                                 if (horaSelecionada != null) {
                                   dataSelecionada = DateTime(
                                     dataEscolhida.year, dataEscolhida.month, dataEscolhida.day,
@@ -156,7 +162,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       ],
                     ),
 
-                    // --- BOTÃO DO RELÓGIO (SÓ APARECE SE NÃO FOR "DIA TODO") ---
+                    // --- BOTÃO DO RELÓGIO ---
                     if (!diaTodo)
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -177,7 +183,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                               if (horaEscolhida != null) {
                                 setModalState(() {
                                   horaSelecionada = horaEscolhida;
-                                  // Se já tinha data, junta a data com a nova hora
                                   if (dataSelecionada != null) {
                                     dataSelecionada = DateTime(
                                       dataSelecionada!.year, dataSelecionada!.month, dataSelecionada!.day,
@@ -206,13 +211,40 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         if (nomeTarefa.isNotEmpty) {
                           if (documentoAtual != null) {
                             await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
-                            // Desafio para depois: atualizar data/hora na edição
                           } else {
-                            await _tarefaService.adicionarTarefa(
+                            
+                            // 1. Salva a tarefa e pega o ID gerado pelo Firebase
+                            final idGerado = await _tarefaService.adicionarTarefa(
                               nomeTarefa, 
                               dataVencimento: dataSelecionada,
-                              diaTodo: diaTodo // Passamos o novo booleano para o Firebase!
+                              diaTodo: diaTodo
                             );
+
+                            // 2. LÓGICA DO ALARME
+                            // Se o usuário escolheu uma data e o Firebase devolveu o ID com sucesso:
+                            if (dataSelecionada != null && idGerado != null) {
+                              DateTime dataAlarme = dataSelecionada!;
+
+                              if (diaTodo) {
+                                // Se for o dia todo, volta 1 dia e crava às 09:00 da manhã
+                                dataAlarme = DateTime(
+                                  dataSelecionada!.year, 
+                                  dataSelecionada!.month, 
+                                  dataSelecionada!.day - 1, 
+                                  9, 0
+                                );
+                              }
+
+                              // O Dart só permite agendar alarmes para o futuro
+                              if (dataAlarme.isAfter(DateTime.now())) {
+                                await NotificacaoService().agendarNotificacao(
+                                  id: idGerado.hashCode,
+                                  titulo: diaTodo ? 'Amanhã: $nomeTarefa' : 'Lembrete de Tarefa',
+                                  corpo: diaTodo ? 'Você tem uma tarefa pendente para amanhã!' : 'Sua tarefa está próxima do prazo.',
+                                  dataAgendada: dataAlarme,
+                                );
+                              }
+                            }
                           }
                           _controladorTexto.text = '';
                           if (context.mounted) Navigator.of(context).pop();
@@ -228,7 +260,15 @@ class _TodoListScreenState extends State<TodoListScreen> {
   }
 
   Future<void> _atualizarTarefa(String id, bool statusAtual) async {
+    // Se estava pendente (false), vai virar concluída (true)
+    bool vaiConcluir = !statusAtual;
+    
     await _tarefaService.alternarStatusTarefa(id, statusAtual);
+
+    // Se o usuário marcou como concluída, nós desarmamos a bomba!
+    if (vaiConcluir) {
+      await NotificacaoService().cancelarNotificacao(id.hashCode);
+    }
   }
 
   Future<bool> _deletarTarefa(String id) async {
@@ -255,26 +295,26 @@ class _TodoListScreenState extends State<TodoListScreen> {
     );
 
     if (confirmarExclusao == true) {
-      // 1. Deleta do banco
+      // 1. Deleta do banco de dados
       await _tarefaService.deletarTarefa(id);
       
-      // 2. Verifica se a tela ainda existe antes de mostrar o aviso
+      // 2. Apaga o alarme do celular para não tocar à toa
+      await NotificacaoService().cancelarNotificacao(id.hashCode);
+      
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('Tarefa apagada com sucesso!'),
             backgroundColor: Colors.red.shade400,
             duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating, // Deixa a barrinha flutuando, mais moderno
+            behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
-      
-      return true; // Retorna true para confirmar que a tarefa foi apagada pro Dismissible
+      return true;
     }
-    
-    return false; // Retorna false se o usuário cancelou (o card volta pro lugar)
+    return false;
   }
 
   @override
@@ -285,7 +325,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
       ),
       body: Column(
         children: [
-          // BOTÕES DE FILTRO
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: SegmentedButton<FiltroTarefa>(
@@ -296,29 +335,22 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ],
               selected: {_filtroAtual},
               onSelectionChanged: (Set<FiltroTarefa> novaSelecao) {
-                // O setState avisa o Flutter para desenhar a tela de novo!
                 setState(() {
                   _filtroAtual = novaSelecao.first;
                 });
               },
             ),
           ),
-
-          // A LISTA DE TAREFAS (Ocupando o resto da tela com o Expanded)
           Expanded(
             child: StreamBuilder(
               stream: _tarefaService.getTarefasStream(),
               builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
                 if (streamSnapshot.hasData) {
-                  // Pegamos todos os documentos do banco
                   var documentos = streamSnapshot.data!.docs;
 
-                  // A LÓGICA DO FILTRO ACONTECE AQUI NO DART:
                   if (_filtroAtual == FiltroTarefa.pendentes) {
-                    // Filtra mantendo apenas as que têm concluida == false
                     documentos = documentos.where((doc) => doc['concluida'] == false).toList();
                   } else if (_filtroAtual == FiltroTarefa.concluidas) {
-                    // Filtra mantendo apenas as que têm concluida == true
                     documentos = documentos.where((doc) => doc['concluida'] == true).toList();
                   }
                   
@@ -343,11 +375,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
                       final idDaTarefa = documento.id;
                       final bool estaConcluida = documento['concluida'];
                       
-                      // Lógica para pegar a data (se ela existir no documento)
                       DateTime? dataExtraida;
-                      // Checamos se o campo existe para não dar erro nas tarefas antigas
                       if (documento.data().toString().contains('dataVencimento') && documento['dataVencimento'] != null) {
-                        // O Firebase salva como Timestamp, então convertemos para o DateTime do Dart
                         dataExtraida = (documento['dataVencimento'] as Timestamp).toDate();
                       }
 
@@ -370,7 +399,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         child: TarefaItem(
                           nome: documento['nome'],
                           estaConcluida: estaConcluida,
-                          dataVencimento: dataExtraida, // Passamos a data extraída para o componente!
+                          dataVencimento: dataExtraida,
                           onChanged: (bool? novoValor) {
                             _atualizarTarefa(idDaTarefa, estaConcluida);
                           },
@@ -387,7 +416,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
           ),
         ],
       ),
-
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _abrirModalTarefa(),
         icon: const Icon(Icons.add),
