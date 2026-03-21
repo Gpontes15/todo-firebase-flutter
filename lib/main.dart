@@ -27,15 +27,13 @@ class MyApp extends StatelessWidget {
       title: 'To-Do Premium',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // Uma paleta de cores mais moderna e vibrante
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1), // Índigo moderno
+          seedColor: const Color(0xFF6366F1), 
           primary: const Color(0xFF6366F1),
-          surface: const Color(0xFFF8FAFC), // Fundo ultra claro e limpo
+          surface: const Color(0xFFF8FAFC), 
         ),
         scaffoldBackgroundColor: const Color(0xFFF8FAFC),
         useMaterial3: true,
-        // Deixando a fonte padrão com um aspecto mais arredondado e limpo
         fontFamily: 'Roboto', 
       ),
       home: const TodoListScreen(),
@@ -62,6 +60,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     DateTime? dataSelecionada;
     TimeOfDay? horaSelecionada; 
     bool diaTodo = false;       
+    String recorrencia = 'nenhuma'; 
 
     if (documentoAtual != null) {
       _controladorTexto.text = documentoAtual['nome'];
@@ -72,6 +71,9 @@ class _TodoListScreenState extends State<TodoListScreen> {
       if (documentoAtual.data().toString().contains('diaTodo')) {
         diaTodo = documentoAtual['diaTodo'] ?? false;
       }
+      if (documentoAtual.data().toString().contains('recorrencia')) {
+        recorrencia = documentoAtual['recorrencia'] ?? 'nenhuma';
+      }
     } else {
       _controladorTexto.text = '';
     }
@@ -79,16 +81,16 @@ class _TodoListScreenState extends State<TodoListScreen> {
     showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.white, // Fundo branco puro para contrastar com o app
+        backgroundColor: Colors.white, 
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32.0)), // Bordas mais arredondadas
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32.0)), 
         ),
         builder: (BuildContext ctx) {
           return StatefulBuilder(
             builder: (BuildContext context, StateSetter setModalState) {
               return Padding(
                 padding: EdgeInsets.only(
-                    top: 12, // Reduzido para dar espaço ao "puxador"
+                    top: 12, 
                     left: 24,
                     right: 24,
                     bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
@@ -96,7 +98,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // --- DRAG HANDLE (O "puxador" moderno no topo do modal) ---
                     Center(
                       child: Container(
                         width: 40,
@@ -111,33 +112,32 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     Text(
                       documentoAtual != null ? 'Editar Tarefa' : 'Nova Tarefa',
                       style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
-                      textAlign: TextAlign.left, // Alinhado à esquerda para um ar mais limpo
+                      textAlign: TextAlign.left, 
                     ),
                     const SizedBox(height: 24),
                     
-                    // --- TEXTFIELD MODERNO ---
                     TextField(
                       controller: _controladorTexto,
                       autofocus: true,
+                      textCapitalization: TextCapitalization.sentences, // Inicia sempre com letra maiúscula
                       style: const TextStyle(fontSize: 16),
                       decoration: InputDecoration(
                         labelText: 'O que você precisa fazer?',
                         labelStyle: TextStyle(color: Colors.grey.shade600),
                         filled: true,
-                        fillColor: Colors.grey.shade100, // Fundo cinza suave
+                        fillColor: Colors.grey.shade100, 
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none, // Sem borda preta
+                          borderSide: BorderSide.none, 
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2), // Borda fina ao clicar
+                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2), 
                         ),
                       ),
                     ),
                     const SizedBox(height: 16),
 
-                    // --- OPÇÕES EM CARDS MODERNOS ---
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
@@ -214,17 +214,41 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                 if (horaEscolhida != null) {
                                   setModalState(() {
                                     horaSelecionada = horaEscolhida;
-                                    if (dataSelecionada != null) {
-                                      dataSelecionada = DateTime(
-                                        dataSelecionada!.year, dataSelecionada!.month, dataSelecionada!.day,
-                                        horaEscolhida.hour, horaEscolhida.minute
-                                      );
-                                    }
+                                    // VALIDAÇÃO INTELIGENTE: Se escolheu hora mas não tinha dia, assume que é hoje!
+                                    dataSelecionada ??= DateTime.now();
+                                    dataSelecionada = DateTime(
+                                      dataSelecionada!.year, dataSelecionada!.month, dataSelecionada!.day,
+                                      horaEscolhida.hour, horaEscolhida.minute
+                                    );
                                   });
                                 }
                               },
                             ),
                           ],
+                          
+                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: DropdownButtonFormField<String>(
+                              value: recorrencia,
+                              icon: const Icon(Icons.expand_more, color: Colors.grey),
+                              decoration: const InputDecoration(
+                                prefixIcon: Icon(Icons.repeat, color: Color(0xFF6366F1)),
+                                border: InputBorder.none, 
+                              ),
+                              items: const [
+                                DropdownMenuItem(value: 'nenhuma', child: Text('Não repetir')),
+                                DropdownMenuItem(value: 'diária', child: Text('Todos os dias')),
+                                DropdownMenuItem(value: 'semanal', child: Text('Toda a semana')),
+                                DropdownMenuItem(value: 'mensal', child: Text('Todo o mês')),
+                              ],
+                              onChanged: (String? novaRecorrencia) {
+                                setModalState(() {
+                                  recorrencia = novaRecorrencia!;
+                                });
+                              },
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -243,41 +267,76 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       onPressed: () async {
-                        final String nomeTarefa = _controladorTexto.text;
-                        if (nomeTarefa.isNotEmpty) {
-                          if (documentoAtual != null) {
-                            await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
-                          } else {
-                            final idGerado = await _tarefaService.adicionarTarefa(
-                              nomeTarefa, 
-                              dataVencimento: dataSelecionada,
-                              diaTodo: diaTodo
-                            );
+                        // Limpa espaços em branco no início e no fim do texto
+                        final String nomeTarefa = _controladorTexto.text.trim(); 
+                        
+                        // --- VALIDAÇÃO DE CAMPO VAZIO ---
+                        if (nomeTarefa.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: const Row(
+                                children: [
+                                  Icon(Icons.warning_amber_rounded, color: Colors.white),
+                                  SizedBox(width: 8),
+                                  Text('Por favor, dê um nome para a tarefa.'),
+                                ],
+                              ),
+                              backgroundColor: Colors.orange.shade800,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                            ),
+                          );
+                          return; // O 'return' impede o código de continuar e não salva nada
+                        }
 
-                            if (dataSelecionada != null && idGerado != null) {
-                              DateTime dataAlarme = dataSelecionada!;
-                              if (diaTodo) {
-                                dataAlarme = DateTime(
-                                  dataSelecionada!.year, 
-                                  dataSelecionada!.month, 
-                                  dataSelecionada!.day - 1, 
-                                  9, 0
-                                );
-                              }
+                        if (documentoAtual != null) {
+                          await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
+                        } else {
+                          final idGerado = await _tarefaService.adicionarTarefa(
+                            nomeTarefa, 
+                            dataVencimento: dataSelecionada,
+                            diaTodo: diaTodo,
+                            recorrencia: recorrencia 
+                          );
 
-                              if (dataAlarme.isAfter(DateTime.now())) {
-                                await NotificacaoService().agendarNotificacao(
-                                  id: idGerado.hashCode.abs(), 
-                                  titulo: diaTodo ? 'Amanhã: $nomeTarefa' : 'Lembrete de Tarefa',
-                                  corpo: diaTodo ? 'Você tem uma tarefa pendente para amanhã!' : 'Sua tarefa está próxima do prazo.',
-                                  dataAgendada: dataAlarme,
+                          if (dataSelecionada != null && idGerado != null) {
+                            DateTime dataAlarme = dataSelecionada!;
+                            if (diaTodo) {
+                              dataAlarme = DateTime(
+                                dataSelecionada!.year, 
+                                dataSelecionada!.month, 
+                                dataSelecionada!.day - 1, 
+                                9, 0
+                              );
+                            }
+
+                            if (dataAlarme.isAfter(DateTime.now())) {
+                              await NotificacaoService().agendarNotificacao(
+                                id: idGerado.hashCode.abs(), 
+                                titulo: diaTodo ? 'Amanhã: $nomeTarefa' : 'Lembrete de Tarefa',
+                                corpo: diaTodo ? 'Você tem uma tarefa pendente para amanhã!' : 'Sua tarefa está próxima do prazo.',
+                                dataAgendada: dataAlarme,
+                              );
+                            } else {
+                              // --- VALIDAÇÃO DE ALARME NO PASSADO ---
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: const Text('Aviso: A tarefa foi salva, mas o horário escolhido já passou. O alarme não tocará.'),
+                                    backgroundColor: Colors.orange.shade800,
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                    margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                                    duration: const Duration(seconds: 4),
+                                  ),
                                 );
                               }
                             }
                           }
-                          _controladorTexto.text = '';
-                          if (context.mounted) Navigator.of(context).pop();
                         }
+                        _controladorTexto.text = '';
+                        if (context.mounted) Navigator.of(context).pop();
                       },
                     )
                   ],
@@ -288,11 +347,59 @@ class _TodoListScreenState extends State<TodoListScreen> {
         });
   }
 
-  Future<void> _atualizarTarefa(String id, bool statusAtual) async {
+  Future<void> _atualizarTarefa(DocumentSnapshot documento) async {
+    final String id = documento.id;
+    final bool statusAtual = documento['concluida'];
     bool vaiConcluir = !statusAtual;
+    
     await _tarefaService.alternarStatusTarefa(id, statusAtual);
+    
     if (vaiConcluir) {
       await NotificacaoService().cancelarNotificacao(id.hashCode.abs()); 
+
+      String recorrencia = 'nenhuma';
+      if (documento.data().toString().contains('recorrencia')) {
+        recorrencia = documento['recorrencia'] ?? 'nenhuma';
+      }
+
+      if (recorrencia != 'nenhuma' && documento.data().toString().contains('dataVencimento') && documento['dataVencimento'] != null) {
+        DateTime dataAntiga = (documento['dataVencimento'] as Timestamp).toDate();
+        DateTime novaData = dataAntiga;
+        
+        if (recorrencia == 'diária') {
+          novaData = dataAntiga.add(const Duration(days: 1));
+        } else if (recorrencia == 'semanal') {
+          novaData = dataAntiga.add(const Duration(days: 7));
+        } else if (recorrencia == 'mensal') {
+          novaData = DateTime(dataAntiga.year, dataAntiga.month + 1, dataAntiga.day, dataAntiga.hour, dataAntiga.minute);
+        }
+
+        bool diaTodo = false;
+        if (documento.data().toString().contains('diaTodo')) diaTodo = documento['diaTodo'] ?? false;
+
+        final novoId = await _tarefaService.adicionarTarefa(
+          documento['nome'],
+          dataVencimento: novaData,
+          diaTodo: diaTodo,
+          recorrencia: recorrencia
+        );
+
+        if (novoId != null) {
+          DateTime dataAlarme = novaData;
+          if (diaTodo) {
+            dataAlarme = DateTime(novaData.year, novaData.month, novaData.day - 1, 9, 0); 
+          }
+          
+          if (dataAlarme.isAfter(DateTime.now())) {
+            await NotificacaoService().agendarNotificacao(
+              id: novoId.hashCode.abs(),
+              titulo: diaTodo ? 'Amanhã: ${documento['nome']}' : 'Lembrete de Tarefa',
+              corpo: diaTodo ? 'Você tem uma tarefa pendente para amanhã!' : 'Sua tarefa está próxima do prazo.',
+              dataAgendada: dataAlarme,
+            );
+          }
+        }
+      }
     }
   }
 
@@ -336,7 +443,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20), // Flutua de forma mais elegante
+            margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20), 
           ),
         );
       }
@@ -348,7 +455,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --- NOVO CABEÇALHO MODERNO (Substitui a velha AppBar) ---
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -371,12 +477,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
               ),
             ),
             
-            // --- FILTROS ---
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
               child: SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<FiltroTarefa>(
+                  showSelectedIcon: false, // --- CORREÇÃO DA RESPONSIVIDADE AQUI! ---
                   style: SegmentedButton.styleFrom(
                     backgroundColor: Colors.white,
                     selectedForegroundColor: Colors.white,
@@ -399,7 +505,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
             ),
             const SizedBox(height: 16),
 
-            // --- LISTA DE TAREFAS ---
             Expanded(
               child: StreamBuilder(
                 stream: _tarefaService.getTarefasStream(),
@@ -431,7 +536,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                               child: const Icon(Icons.check_circle_outline, size: 80, color: Color(0xFF6366F1)),
                             ),
                             const SizedBox(height: 24),
-                            Text('Tudo limpo por aqui!', style: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold)),
+                            const Text('Tudo limpo por aqui!', style: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 8),
                             Text('Adicione novas tarefas para começar.', style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
                           ],
@@ -452,6 +557,11 @@ class _TodoListScreenState extends State<TodoListScreen> {
                           dataExtraida = (documento['dataVencimento'] as Timestamp).toDate();
                         }
 
+                        String recorrenciaExtraida = 'nenhuma';
+                        if (documento.data().toString().contains('recorrencia')) {
+                          recorrenciaExtraida = documento['recorrencia'] ?? 'nenhuma';
+                        }
+
                         return Dismissible(
                           key: Key(idDaTarefa),
                           direction: DismissDirection.endToStart,
@@ -461,7 +571,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
                               color: Colors.red.shade400,
-                              borderRadius: BorderRadius.circular(16), // Bordas casando com o item
+                              borderRadius: BorderRadius.circular(16), 
                             ),
                             child: const Icon(Icons.delete_outline, color: Colors.white, size: 32),
                           ),
@@ -469,13 +579,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             return await _deletarTarefa(idDaTarefa);
                           },
                           child: Padding(
-                            padding: const EdgeInsets.only(bottom: 12.0), // Espaçamento entre as tarefas
+                            padding: const EdgeInsets.only(bottom: 12.0), 
                             child: TarefaItem(
                               nome: documento['nome'],
                               estaConcluida: estaConcluida,
                               dataVencimento: dataExtraida,
+                              recorrencia: recorrenciaExtraida, 
                               onChanged: (bool? novoValor) {
-                                _atualizarTarefa(idDaTarefa, estaConcluida);
+                                _atualizarTarefa(documento); 
                               },
                               onEdit: () => _abrirModalTarefa(documento),
                               onDelete: () => _deletarTarefa(idDaTarefa),
@@ -497,7 +608,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
         backgroundColor: const Color(0xFF6366F1),
         foregroundColor: Colors.white,
         elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), // Botão arredondado moderno
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), 
         icon: const Icon(Icons.add),
         label: const Text('Nova Tarefa', style: TextStyle(fontWeight: FontWeight.bold)),
       ),

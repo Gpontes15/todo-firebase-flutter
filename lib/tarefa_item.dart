@@ -4,6 +4,7 @@ class TarefaItem extends StatelessWidget {
   final String nome;
   final bool estaConcluida;
   final DateTime? dataVencimento;
+  final String recorrencia; // Nova variável para o visual
   final Function(bool?) onChanged;
   final Function() onEdit;
   final Function() onDelete;
@@ -13,6 +14,7 @@ class TarefaItem extends StatelessWidget {
     required this.nome,
     required this.estaConcluida,
     required this.dataVencimento,
+    required this.recorrencia,
     required this.onChanged,
     required this.onEdit,
     required this.onDelete,
@@ -50,59 +52,52 @@ class TarefaItem extends StatelessWidget {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)), 
             ),
           ),
-          const SizedBox(width: 12), // Espaço entre checkbox e texto
-
-          // --- ÁREA DE TEXTO E DATA ---
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min, // Ocupa o mínimo de espaço vertical
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Nome da Tarefa
                 Text(
                   nome,
                   style: TextStyle(
                     fontSize: 16,
-                    fontWeight: FontWeight.w500, // Nem muito fino, nem muito grosso
+                    fontWeight: FontWeight.w500,
                     color: estaConcluida ? textCompletedColor : Colors.black87,
-                    // Riscado se concluída
                     decoration: estaConcluida ? TextDecoration.lineThrough : TextDecoration.none, 
                   ),
                 ),
-                
-                // Mostra a data se ela existir
                 if (dataVencimento != null) ...[
-                  const SizedBox(height: 6), // Espaço entre nome e data
-                  // Organização moderna da data
+                  const SizedBox(height: 6),
                   Row(
                     children: [
                       Icon(Icons.calendar_month_outlined, size: 14, color: Colors.grey.shade600),
                       const SizedBox(width: 4),
                       Text(
-                        // Formatação manual simples DD/MM/AAAA (padrão Brasil)
                         '${dataVencimento!.day.toString().padLeft(2, '0')}/${dataVencimento!.month.toString().padLeft(2, '0')}/${dataVencimento!.year}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w400,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w400),
                       ),
+                      // --- AQUI ENTRA O ÍCONE DE REPETIÇÃO ---
+                      if (recorrencia != 'nenhuma') ...[
+                        const SizedBox(width: 8),
+                        const Icon(Icons.repeat, size: 14, color: primaryColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          recorrencia.toUpperCase(),
+                          style: const TextStyle(fontSize: 10, color: primaryColor, fontWeight: FontWeight.bold),
+                        ),
+                      ]
                     ],
                   ),
                 ]
               ],
             ),
           ),
-
-          // --- BOTÕES DE AÇÃO (Ícones mais finos e sutis) ---
           IconButton(
             icon: Icon(Icons.edit_outlined, color: Colors.grey.shade500, size: 22),
             onPressed: onEdit,
-            splashRadius: 22, // Área de clique redonda menor
+            splashRadius: 22,
           ),
-          // Nota: O botão de deletar foi removido daqui porque nós usamos 
-          // o Dismissible (arrastar para o lado) no main.dart para apagar,
-          // o que deixa a interface do card mais limpa.
         ],
       ),
     );
