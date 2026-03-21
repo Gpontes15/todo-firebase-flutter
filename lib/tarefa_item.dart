@@ -4,7 +4,7 @@ class TarefaItem extends StatelessWidget {
   final String nome;
   final bool estaConcluida;
   final DateTime? dataVencimento;
-  final String recorrencia; // Nova variável para o visual
+  final String recorrencia;
   final Function(bool?) onChanged;
   final Function() onEdit;
   final Function() onDelete;
@@ -22,15 +22,21 @@ class TarefaItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const Color primaryColor = Color(0xFF6366F1);
-    const Color textCompletedColor = Colors.grey;
+    // Pegamos as cores dinâmicas do tema atual (Claro ou Escuro)
+    final corPrimaria = Theme.of(context).colorScheme.primary;
+    final corFundo = Theme.of(context).colorScheme.surface;
+    final corTextoPrincipal = Theme.of(context).colorScheme.onSurface;
+    final corTextoSecundario = Theme.of(context).colorScheme.onSurfaceVariant;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: corFundo, // Fundo inteligente (Branco no claro, Cinza escuro no dark)
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        border: isDark ? Border.all(color: Colors.white10) : null, // Borda sutil no dark mode
+        boxShadow: isDark ? [] : [
+          // Sombra só aparece no tema claro, no escuro a gente usa borda fina
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
             spreadRadius: 1,
@@ -46,9 +52,9 @@ class TarefaItem extends StatelessWidget {
             child: Checkbox(
               value: estaConcluida,
               onChanged: onChanged,
-              activeColor: primaryColor,
-              checkColor: Colors.white,
-              side: BorderSide(color: Colors.grey.shade400, width: 1.5),
+              activeColor: corPrimaria,
+              checkColor: corFundo, // O "V" do check pega a cor do fundo
+              side: BorderSide(color: isDark ? Colors.grey.shade600 : Colors.grey.shade400, width: 1.5),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)), 
             ),
           ),
@@ -63,7 +69,8 @@ class TarefaItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                    color: estaConcluida ? textCompletedColor : Colors.black87,
+                    // Cor do texto inteligente
+                    color: estaConcluida ? corTextoSecundario.withOpacity(0.5) : corTextoPrincipal,
                     decoration: estaConcluida ? TextDecoration.lineThrough : TextDecoration.none, 
                   ),
                 ),
@@ -71,20 +78,19 @@ class TarefaItem extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.calendar_month_outlined, size: 14, color: Colors.grey.shade600),
+                      Icon(Icons.calendar_month_outlined, size: 14, color: corTextoSecundario),
                       const SizedBox(width: 4),
                       Text(
                         '${dataVencimento!.day.toString().padLeft(2, '0')}/${dataVencimento!.month.toString().padLeft(2, '0')}/${dataVencimento!.year}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600, fontWeight: FontWeight.w400),
+                        style: TextStyle(fontSize: 12, color: corTextoSecundario, fontWeight: FontWeight.w400),
                       ),
-                      // --- AQUI ENTRA O ÍCONE DE REPETIÇÃO ---
                       if (recorrencia != 'nenhuma') ...[
                         const SizedBox(width: 8),
-                        const Icon(Icons.repeat, size: 14, color: primaryColor),
+                        Icon(Icons.repeat, size: 14, color: corPrimaria),
                         const SizedBox(width: 4),
                         Text(
                           recorrencia.toUpperCase(),
-                          style: const TextStyle(fontSize: 10, color: primaryColor, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 10, color: corPrimaria, fontWeight: FontWeight.bold),
                         ),
                       ]
                     ],
@@ -94,7 +100,7 @@ class TarefaItem extends StatelessWidget {
             ),
           ),
           IconButton(
-            icon: Icon(Icons.edit_outlined, color: Colors.grey.shade500, size: 22),
+            icon: Icon(Icons.edit_outlined, color: corTextoSecundario, size: 22),
             onPressed: onEdit,
             splashRadius: 22,
           ),

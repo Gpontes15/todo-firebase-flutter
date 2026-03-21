@@ -19,24 +19,55 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  // O "controle remoto" do tema do nosso aplicativo
+  static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'To-Do Premium',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6366F1), 
-          primary: const Color(0xFF6366F1),
-          surface: const Color(0xFFF8FAFC), 
-        ),
-        scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-        useMaterial3: true,
-        fontFamily: 'Roboto', 
-      ),
-      home: const TodoListScreen(),
+    return ValueListenableBuilder<ThemeMode>(
+      valueListenable: themeNotifier,
+      builder: (_, ThemeMode currentMode, __) {
+        return MaterialApp(
+          title: 'To-Do Premium',
+          debugShowCheckedModeBanner: false,
+          themeMode: currentMode, // Escuta o nosso controle remoto
+          
+          // --- TEMA CLARO ---
+          theme: ThemeData(
+            brightness: Brightness.light,
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF6366F1), 
+              primary: const Color(0xFF6366F1),
+              surface: const Color(0xFFF8FAFC), 
+              onSurface: Colors.black87,
+              surfaceContainerHighest: Colors.grey.shade100,
+            ),
+            scaffoldBackgroundColor: const Color(0xFFF8FAFC),
+            useMaterial3: true,
+            fontFamily: 'Roboto', 
+          ),
+
+          // --- TEMA ESCURO ---
+          darkTheme: ThemeData(
+            brightness: Brightness.dark,
+            colorScheme: ColorScheme.fromSeed(
+              brightness: Brightness.dark,
+              seedColor: const Color(0xFF6366F1), 
+              primary: const Color(0xFF818CF8), // Um roxo um pouquinho mais claro para dar contraste no escuro
+              surface: const Color(0xFF1E1E2C), // Cinza muito escuro e elegante (não preto puro)
+              onSurface: Colors.white,
+              surfaceContainerHighest: const Color(0xFF2A2A3C),
+            ),
+            scaffoldBackgroundColor: const Color(0xFF12121A), // Fundo principal quase preto
+            useMaterial3: true,
+            fontFamily: 'Roboto', 
+          ),
+          
+          home: const TodoListScreen(),
+        );
+      }
     );
   }
 }
@@ -81,7 +112,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Colors.white, 
+        backgroundColor: Theme.of(context).colorScheme.surface, // INTELIGENTE
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(32.0)), 
         ),
@@ -104,14 +135,14 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         height: 5,
                         margin: const EdgeInsets.only(bottom: 24),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                     ),
                     Text(
                       documentoAtual != null ? 'Editar Tarefa' : 'Nova Tarefa',
-                      style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                       textAlign: TextAlign.left, 
                     ),
                     const SizedBox(height: 24),
@@ -119,20 +150,20 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     TextField(
                       controller: _controladorTexto,
                       autofocus: true,
-                      textCapitalization: TextCapitalization.sentences, // Inicia sempre com letra maiúscula
-                      style: const TextStyle(fontSize: 16),
+                      textCapitalization: TextCapitalization.sentences, 
+                      style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
                       decoration: InputDecoration(
                         labelText: 'O que você precisa fazer?',
-                        labelStyle: TextStyle(color: Colors.grey.shade600),
+                        labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
                         filled: true,
-                        fillColor: Colors.grey.shade100, 
+                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest, // INTELIGENTE
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none, 
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2), 
+                          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2), 
                         ),
                       ),
                     ),
@@ -140,17 +171,17 @@ class _TodoListScreenState extends State<TodoListScreen> {
 
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
                       ),
                       child: Column(
                         children: [
                           SwitchListTile(
                             title: const Text('Dia todo', style: TextStyle(fontWeight: FontWeight.w500)),
-                            subtitle: Text('Avisa no dia anterior às 09:00', style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+                            subtitle: Text('Avisa no dia anterior às 09:00', style: TextStyle(fontSize: 12)),
                             value: diaTodo,
-                            activeColor: const Color(0xFF6366F1),
+                            activeColor: Theme.of(context).colorScheme.primary,
                             onChanged: (bool valor) {
                               setModalState(() {
                                 diaTodo = valor;
@@ -158,29 +189,21 @@ class _TodoListScreenState extends State<TodoListScreen> {
                               });
                             },
                           ),
-                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
                           ListTile(
                             leading: Container(
                               padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(color: const Color(0xFF6366F1).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                              child: const Icon(Icons.calendar_month, color: Color(0xFF6366F1)),
+                              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                              child: Icon(Icons.calendar_month, color: Theme.of(context).colorScheme.primary),
                             ),
                             title: Text(dataSelecionada == null ? 'Escolher Data' : 'Data: ${dataSelecionada!.day}/${dataSelecionada!.month}/${dataSelecionada!.year}'),
-                            trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                            trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
                             onTap: () async {
                               final DateTime? dataEscolhida = await showDatePicker(
                                 context: context,
                                 initialDate: dataSelecionada ?? DateTime.now(),
                                 firstDate: DateTime.now(),
                                 lastDate: DateTime(2030),
-                                builder: (context, child) {
-                                  return Theme(
-                                    data: Theme.of(context).copyWith(
-                                      colorScheme: const ColorScheme.light(primary: Color(0xFF6366F1)),
-                                    ),
-                                    child: child!,
-                                  );
-                                },
                               );
                               if (dataEscolhida != null) {
                                 setModalState(() {
@@ -197,15 +220,15 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             },
                           ),
                           if (!diaTodo) ...[
-                            const Divider(height: 1, indent: 16, endIndent: 16),
+                            Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
                             ListTile(
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(color: const Color(0xFF6366F1).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                                child: const Icon(Icons.access_time, color: Color(0xFF6366F1)),
+                                decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                                child: Icon(Icons.access_time, color: Theme.of(context).colorScheme.primary),
                               ),
                               title: Text(horaSelecionada == null ? 'Escolher Hora' : 'Hora: ${horaSelecionada!.format(context)}'),
-                              trailing: const Icon(Icons.chevron_right, color: Colors.grey),
+                              trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
                               onTap: () async {
                                 final TimeOfDay? horaEscolhida = await showTimePicker(
                                   context: context,
@@ -214,7 +237,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                 if (horaEscolhida != null) {
                                   setModalState(() {
                                     horaSelecionada = horaEscolhida;
-                                    // VALIDAÇÃO INTELIGENTE: Se escolheu hora mas não tinha dia, assume que é hoje!
                                     dataSelecionada ??= DateTime.now();
                                     dataSelecionada = DateTime(
                                       dataSelecionada!.year, dataSelecionada!.month, dataSelecionada!.day,
@@ -226,14 +248,15 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             ),
                           ],
                           
-                          const Divider(height: 1, indent: 16, endIndent: 16),
+                          Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             child: DropdownButtonFormField<String>(
                               value: recorrencia,
-                              icon: const Icon(Icons.expand_more, color: Colors.grey),
-                              decoration: const InputDecoration(
-                                prefixIcon: Icon(Icons.repeat, color: Color(0xFF6366F1)),
+                              dropdownColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                              icon: Icon(Icons.expand_more, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                              decoration: InputDecoration(
+                                prefixIcon: Icon(Icons.repeat, color: Theme.of(context).colorScheme.primary),
                                 border: InputBorder.none, 
                               ),
                               items: const [
@@ -256,8 +279,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     const SizedBox(height: 24),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF6366F1),
-                        foregroundColor: Colors.white,
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        foregroundColor: Theme.of(context).colorScheme.onPrimary, // Branco ou Preto dependendo do contraste
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -267,10 +290,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
                       onPressed: () async {
-                        // Limpa espaços em branco no início e no fim do texto
                         final String nomeTarefa = _controladorTexto.text.trim(); 
                         
-                        // --- VALIDAÇÃO DE CAMPO VAZIO ---
                         if (nomeTarefa.isEmpty) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -287,7 +308,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                               margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
                             ),
                           );
-                          return; // O 'return' impede o código de continuar e não salva nada
+                          return; 
                         }
 
                         if (documentoAtual != null) {
@@ -319,7 +340,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                 dataAgendada: dataAlarme,
                               );
                             } else {
-                              // --- VALIDAÇÃO DE ALARME NO PASSADO ---
                               if (context.mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
@@ -408,10 +428,10 @@ class _TodoListScreenState extends State<TodoListScreen> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          backgroundColor: Colors.white,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          title: const Text('Apagar tarefa?'),
-          content: const Text('Esta ação não pode ser desfeita.'),
+          title: Text('Apagar tarefa?', style: TextStyle(color: Theme.of(context).colorScheme.onSurface)),
+          content: Text('Esta ação não pode ser desfeita.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -461,17 +481,48 @@ class _TodoListScreenState extends State<TodoListScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 40, 24, 20),
-              child: Column(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Olá, Gabriel! 👋',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Olá, Gabriel! 👋',
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Aqui estão as suas tarefas.',
+                        style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Aqui estão as suas tarefas.',
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                  
+                  // --- O BOTÃO MÁGICO DE TEMA CLARO / ESCURO ---
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        Theme.of(context).brightness == Brightness.dark 
+                            ? Icons.light_mode 
+                            : Icons.dark_mode_outlined,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      onPressed: () {
+                        // Inverte o tema atual no nosso "controle remoto"
+                        if (MyApp.themeNotifier.value == ThemeMode.system) {
+                          final isSystemDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
+                          MyApp.themeNotifier.value = isSystemDark ? ThemeMode.light : ThemeMode.dark;
+                        } else {
+                          MyApp.themeNotifier.value = MyApp.themeNotifier.value == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+                        }
+                      },
+                    ),
                   ),
                 ],
               ),
@@ -482,12 +533,12 @@ class _TodoListScreenState extends State<TodoListScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<FiltroTarefa>(
-                  showSelectedIcon: false, // --- CORREÇÃO DA RESPONSIVIDADE AQUI! ---
+                  showSelectedIcon: false, 
                   style: SegmentedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    selectedForegroundColor: Colors.white,
-                    selectedBackgroundColor: const Color(0xFF6366F1),
-                    side: BorderSide(color: Colors.grey.shade300),
+                    backgroundColor: Theme.of(context).colorScheme.surface,
+                    selectedForegroundColor: Theme.of(context).colorScheme.onPrimary,
+                    selectedBackgroundColor: Theme.of(context).colorScheme.primary,
+                    side: BorderSide(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
                   ),
                   segments: const [
                     ButtonSegment(value: FiltroTarefa.todas, label: Text('Todas')),
@@ -510,7 +561,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                 stream: _tarefaService.getTarefasStream(),
                 builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
                   if (streamSnapshot.connectionState == ConnectionState.waiting) {
-                     return const Center(child: CircularProgressIndicator(color: Color(0xFF6366F1)));
+                     return Center(child: CircularProgressIndicator(color: Theme.of(context).colorScheme.primary));
                   }
 
                   if (streamSnapshot.hasData) {
@@ -530,15 +581,15 @@ class _TodoListScreenState extends State<TodoListScreen> {
                             Container(
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF6366F1).withOpacity(0.05),
+                                color: Theme.of(context).colorScheme.primary.withOpacity(0.05),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.check_circle_outline, size: 80, color: Color(0xFF6366F1)),
+                              child: Icon(Icons.check_circle_outline, size: 80, color: Theme.of(context).colorScheme.primary),
                             ),
                             const SizedBox(height: 24),
-                            const Text('Tudo limpo por aqui!', style: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold)),
+                            Text('Tudo limpo por aqui!', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 20, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 8),
-                            Text('Adicione novas tarefas para começar.', style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                            Text('Adicione novas tarefas para começar.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 16)),
                           ],
                         ),
                       );
@@ -605,8 +656,8 @@ class _TodoListScreenState extends State<TodoListScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _abrirModalTarefa(),
-        backgroundColor: const Color(0xFF6366F1),
-        foregroundColor: Colors.white,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), 
         icon: const Icon(Icons.add),
