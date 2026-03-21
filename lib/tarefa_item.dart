@@ -3,18 +3,16 @@ import 'package:flutter/material.dart';
 class TarefaItem extends StatelessWidget {
   final String nome;
   final bool estaConcluida;
-  // Nova variável: pode ser nula porque nem toda tarefa tem data
-  final DateTime? dataVencimento; 
-  
-  final Function(bool?) onChanged; 
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final DateTime? dataVencimento;
+  final Function(bool?) onChanged;
+  final Function() onEdit;
+  final Function() onDelete;
 
   const TarefaItem({
     super.key,
     required this.nome,
     required this.estaConcluida,
-    this.dataVencimento, // Adicionado aqui (sem o required, pois é opcional)
+    required this.dataVencimento,
     required this.onChanged,
     required this.onEdit,
     required this.onDelete,
@@ -22,69 +20,90 @@ class TarefaItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+    const Color primaryColor = Color(0xFF6366F1);
+    const Color textCompletedColor = Colors.grey;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            spreadRadius: 1,
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        title: Text(
-          nome,
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: estaConcluida ? FontWeight.normal : FontWeight.w500,
-            color: estaConcluida ? Colors.grey : Colors.black87,
-            decoration: estaConcluida ? TextDecoration.lineThrough : null,
+      child: Row(
+        children: [
+          Transform.scale(
+            scale: 1.1,
+            child: Checkbox(
+              value: estaConcluida,
+              onChanged: onChanged,
+              activeColor: primaryColor,
+              checkColor: Colors.white,
+              side: BorderSide(color: Colors.grey.shade400, width: 1.5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)), 
+            ),
           ),
-        ),
-        
-        // --- A MÁGICA ACONTECE AQUI NO SUBTITLE ---
-        // Só mostramos o subtítulo se a data não for nula
-        subtitle: dataVencimento != null 
-          ? Padding(
-              padding: const EdgeInsets.only(top: 4.0),
-              child: Row(
-                children: [
-                  Icon(Icons.event, size: 14, color: estaConcluida ? Colors.grey : Colors.indigo.shade300),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${dataVencimento!.day}/${dataVencimento!.month}/${dataVencimento!.year}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: estaConcluida ? Colors.grey : Colors.indigo.shade400,
-                      decoration: estaConcluida ? TextDecoration.lineThrough : null,
-                    ),
+          const SizedBox(width: 12), // Espaço entre checkbox e texto
+
+          // --- ÁREA DE TEXTO E DATA ---
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min, // Ocupa o mínimo de espaço vertical
+              children: [
+                // Nome da Tarefa
+                Text(
+                  nome,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500, // Nem muito fino, nem muito grosso
+                    color: estaConcluida ? textCompletedColor : Colors.black87,
+                    // Riscado se concluída
+                    decoration: estaConcluida ? TextDecoration.lineThrough : TextDecoration.none, 
                   ),
-                ],
-              ),
-            )
-          : null, // Se for nula, o Flutter ignora e não desenha nada
-          
-        leading: Transform.scale(
-          scale: 1.2,
-          child: Checkbox(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-            value: estaConcluida,
-            onChanged: onChanged,
+                ),
+                
+                // Mostra a data se ela existir
+                if (dataVencimento != null) ...[
+                  const SizedBox(height: 6), // Espaço entre nome e data
+                  // Organização moderna da data
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_month_outlined, size: 14, color: Colors.grey.shade600),
+                      const SizedBox(width: 4),
+                      Text(
+                        // Formatação manual simples DD/MM/AAAA (padrão Brasil)
+                        '${dataVencimento!.day.toString().padLeft(2, '0')}/${dataVencimento!.month.toString().padLeft(2, '0')}/${dataVencimento!.year}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ]
+              ],
+            ),
           ),
-        ),
-        trailing: SizedBox(
-          width: 96,
-          child: Row(
-            children: [
-              IconButton(
-                icon: Icon(Icons.edit_outlined, color: Colors.indigo.shade400),
-                onPressed: onEdit,
-              ),
-              IconButton(
-                icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
-                onPressed: onDelete,
-              ),
-            ],
+
+          // --- BOTÕES DE AÇÃO (Ícones mais finos e sutis) ---
+          IconButton(
+            icon: Icon(Icons.edit_outlined, color: Colors.grey.shade500, size: 22),
+            onPressed: onEdit,
+            splashRadius: 22, // Área de clique redonda menor
           ),
-        ),
+          // Nota: O botão de deletar foi removido daqui porque nós usamos 
+          // o Dismissible (arrastar para o lado) no main.dart para apagar,
+          // o que deixa a interface do card mais limpa.
+        ],
       ),
     );
   }
