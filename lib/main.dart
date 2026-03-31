@@ -19,7 +19,6 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  // O "controle remoto" do tema do nosso aplicativo
   static final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
 
   const MyApp({super.key});
@@ -32,9 +31,8 @@ class MyApp extends StatelessWidget {
         return MaterialApp(
           title: 'To-Do Premium',
           debugShowCheckedModeBanner: false,
-          themeMode: currentMode, // Escuta o nosso controle remoto
+          themeMode: currentMode, 
           
-          // --- TEMA CLARO ---
           theme: ThemeData(
             brightness: Brightness.light,
             colorScheme: ColorScheme.fromSeed(
@@ -49,18 +47,17 @@ class MyApp extends StatelessWidget {
             fontFamily: 'Roboto', 
           ),
 
-          // --- TEMA ESCURO ---
           darkTheme: ThemeData(
             brightness: Brightness.dark,
             colorScheme: ColorScheme.fromSeed(
               brightness: Brightness.dark,
               seedColor: const Color(0xFF6366F1), 
-              primary: const Color(0xFF818CF8), // Um roxo um pouquinho mais claro para dar contraste no escuro
-              surface: const Color(0xFF1E1E2C), // Cinza muito escuro e elegante (não preto puro)
+              primary: const Color(0xFF818CF8), 
+              surface: const Color(0xFF1E1E2C), 
               onSurface: Colors.white,
               surfaceContainerHighest: const Color(0xFF2A2A3C),
             ),
-            scaffoldBackgroundColor: const Color(0xFF12121A), // Fundo principal quase preto
+            scaffoldBackgroundColor: const Color(0xFF12121A), 
             useMaterial3: true,
             fontFamily: 'Roboto', 
           ),
@@ -112,7 +109,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
     showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: Theme.of(context).colorScheme.surface, // INTELIGENTE
+        backgroundColor: Theme.of(context).colorScheme.surface, 
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(32.0)), 
         ),
@@ -125,241 +122,265 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     left: 24,
                     right: 24,
                     bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 5,
-                        margin: const EdgeInsets.only(bottom: 24),
+                // --- CORREÇÃO DO OVERFLOW (A FITA ZEBRADA) ---
+                child: SingleChildScrollView( 
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 5,
+                          margin: const EdgeInsets.only(bottom: 24),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        documentoAtual != null ? 'Editar Tarefa' : 'Nova Tarefa',
+                        style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                        textAlign: TextAlign.left, 
+                      ),
+                      const SizedBox(height: 24),
+                      
+                      TextField(
+                        controller: _controladorTexto,
+                        autofocus: true,
+                        textCapitalization: TextCapitalization.sentences, 
+                        style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
+                        decoration: InputDecoration(
+                          labelText: 'O que você precisa fazer?',
+                          labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+                          filled: true,
+                          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest, 
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none, 
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2), 
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                  
+                      Container(
                         decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    ),
-                    Text(
-                      documentoAtual != null ? 'Editar Tarefa' : 'Nova Tarefa',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
-                      textAlign: TextAlign.left, 
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    TextField(
-                      controller: _controladorTexto,
-                      autofocus: true,
-                      textCapitalization: TextCapitalization.sentences, 
-                      style: TextStyle(fontSize: 16, color: Theme.of(context).colorScheme.onSurface),
-                      decoration: InputDecoration(
-                        labelText: 'O que você precisa fazer?',
-                        labelStyle: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
-                        filled: true,
-                        fillColor: Theme.of(context).colorScheme.surfaceContainerHighest, // INTELIGENTE
-                        border: OutlineInputBorder(
+                          color: Theme.of(context).colorScheme.surface,
                           borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none, 
+                          border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 2), 
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
-                      ),
-                      child: Column(
-                        children: [
-                          SwitchListTile(
-                            title: const Text('Dia todo', style: TextStyle(fontWeight: FontWeight.w500)),
-                            subtitle: Text('Avisa no dia anterior às 09:00', style: TextStyle(fontSize: 12)),
-                            value: diaTodo,
-                            activeColor: Theme.of(context).colorScheme.primary,
-                            onChanged: (bool valor) {
-                              setModalState(() {
-                                diaTodo = valor;
-                                if (diaTodo) horaSelecionada = null; 
-                              });
-                            },
-                          ),
-                          Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
-                          ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                              child: Icon(Icons.calendar_month, color: Theme.of(context).colorScheme.primary),
-                            ),
-                            title: Text(dataSelecionada == null ? 'Escolher Data' : 'Data: ${dataSelecionada!.day}/${dataSelecionada!.month}/${dataSelecionada!.year}'),
-                            trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                            onTap: () async {
-                              final DateTime? dataEscolhida = await showDatePicker(
-                                context: context,
-                                initialDate: dataSelecionada ?? DateTime.now(),
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime(2030),
-                              );
-                              if (dataEscolhida != null) {
+                        child: Column(
+                          children: [
+                            SwitchListTile(
+                              title: const Text('Dia todo', style: TextStyle(fontWeight: FontWeight.w500)),
+                              subtitle: Text('Avisa no dia anterior às 09:00', style: TextStyle(fontSize: 12)),
+                              value: diaTodo,
+                              activeColor: Theme.of(context).colorScheme.primary,
+                              onChanged: (bool valor) {
                                 setModalState(() {
-                                  if (horaSelecionada != null) {
-                                    dataSelecionada = DateTime(
-                                      dataEscolhida.year, dataEscolhida.month, dataEscolhida.day,
-                                      horaSelecionada!.hour, horaSelecionada!.minute
-                                    );
-                                  } else {
-                                    dataSelecionada = dataEscolhida;
-                                  }
+                                  diaTodo = valor;
+                                  if (diaTodo) horaSelecionada = null; 
                                 });
-                              }
-                            },
-                          ),
-                          if (!diaTodo) ...[
+                              },
+                            ),
                             Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
                             ListTile(
                               leading: Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                                child: Icon(Icons.access_time, color: Theme.of(context).colorScheme.primary),
+                                child: Icon(Icons.calendar_month, color: Theme.of(context).colorScheme.primary),
                               ),
-                              title: Text(horaSelecionada == null ? 'Escolher Hora' : 'Hora: ${horaSelecionada!.format(context)}'),
+                              title: Text(dataSelecionada == null ? 'Escolher Data' : 'Data: ${dataSelecionada!.day}/${dataSelecionada!.month}/${dataSelecionada!.year}'),
                               trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
                               onTap: () async {
-                                final TimeOfDay? horaEscolhida = await showTimePicker(
+                                final DateTime? dataEscolhida = await showDatePicker(
                                   context: context,
-                                  initialTime: horaSelecionada ?? TimeOfDay.now(),
+                                  initialDate: dataSelecionada ?? DateTime.now(),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime(2030),
                                 );
-                                if (horaEscolhida != null) {
+                                if (dataEscolhida != null) {
                                   setModalState(() {
-                                    horaSelecionada = horaEscolhida;
-                                    dataSelecionada ??= DateTime.now();
-                                    dataSelecionada = DateTime(
-                                      dataSelecionada!.year, dataSelecionada!.month, dataSelecionada!.day,
-                                      horaEscolhida.hour, horaEscolhida.minute
-                                    );
+                                    if (horaSelecionada != null) {
+                                      dataSelecionada = DateTime(
+                                        dataEscolhida.year, dataEscolhida.month, dataEscolhida.day,
+                                        horaSelecionada!.hour, horaSelecionada!.minute
+                                      );
+                                    } else {
+                                      dataSelecionada = dataEscolhida;
+                                    }
                                   });
                                 }
                               },
                             ),
-                          ],
-                          
-                          Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: DropdownButtonFormField<String>(
-                              value: recorrencia,
-                              dropdownColor: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              icon: Icon(Icons.expand_more, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                              decoration: InputDecoration(
-                                prefixIcon: Icon(Icons.repeat, color: Theme.of(context).colorScheme.primary),
-                                border: InputBorder.none, 
+                            if (!diaTodo) ...[
+                              Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
+                              ListTile(
+                                leading: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(color: Theme.of(context).colorScheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+                                  child: Icon(Icons.access_time, color: Theme.of(context).colorScheme.primary),
+                                ),
+                                title: Text(horaSelecionada == null ? 'Escolher Hora' : 'Hora: ${horaSelecionada!.format(context)}'),
+                                trailing: Icon(Icons.chevron_right, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                onTap: () async {
+                                  final TimeOfDay? horaEscolhida = await showTimePicker(
+                                    context: context,
+                                    initialTime: horaSelecionada ?? TimeOfDay.now(),
+                                  );
+                                  if (horaEscolhida != null) {
+                                    setModalState(() {
+                                      horaSelecionada = horaEscolhida;
+                                      dataSelecionada ??= DateTime.now();
+                                      dataSelecionada = DateTime(
+                                        dataSelecionada!.year, dataSelecionada!.month, dataSelecionada!.day,
+                                        horaEscolhida.hour, horaEscolhida.minute
+                                      );
+                                    });
+                                  }
+                                },
                               ),
-                              items: const [
-                                DropdownMenuItem(value: 'nenhuma', child: Text('Não repetir')),
-                                DropdownMenuItem(value: 'diária', child: Text('Todos os dias')),
-                                DropdownMenuItem(value: 'semanal', child: Text('Toda a semana')),
-                                DropdownMenuItem(value: 'mensal', child: Text('Todo o mês')),
-                              ],
-                              onChanged: (String? novaRecorrencia) {
-                                setModalState(() {
-                                  recorrencia = novaRecorrencia!;
-                                });
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                      
-                    const SizedBox(height: 24),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).colorScheme.primary,
-                        foregroundColor: Theme.of(context).colorScheme.onPrimary, // Branco ou Preto dependendo do contraste
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: Text(
-                        documentoAtual != null ? 'Atualizar Tarefa' : 'Adicionar Tarefa',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                      onPressed: () async {
-                        final String nomeTarefa = _controladorTexto.text.trim(); 
-                        
-                        if (nomeTarefa.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Row(
-                                children: [
-                                  Icon(Icons.warning_amber_rounded, color: Colors.white),
-                                  SizedBox(width: 8),
-                                  Text('Por favor, dê um nome para a tarefa.'),
+                            ],
+                            
+                            Divider(height: 1, indent: 16, endIndent: 16, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.1)),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              child: DropdownButtonFormField<String>(
+                                value: recorrencia,
+                                dropdownColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                icon: Icon(Icons.expand_more, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                decoration: InputDecoration(
+                                  prefixIcon: Icon(Icons.repeat, color: Theme.of(context).colorScheme.primary),
+                                  border: InputBorder.none, 
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'nenhuma', child: Text('Não repetir')),
+                                  DropdownMenuItem(value: 'diária', child: Text('Todos os dias')),
+                                  DropdownMenuItem(value: 'semanal', child: Text('Toda a semana')),
+                                  DropdownMenuItem(value: 'mensal', child: Text('Todo o mês')),
                                 ],
+                                onChanged: (String? novaRecorrencia) {
+                                  setModalState(() {
+                                    recorrencia = novaRecorrencia!;
+                                  });
+                                },
                               ),
-                              backgroundColor: Colors.orange.shade800,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
                             ),
-                          );
-                          return; 
-                        }
-
-                        if (documentoAtual != null) {
-                          await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
-                        } else {
-                          final idGerado = await _tarefaService.adicionarTarefa(
-                            nomeTarefa, 
-                            dataVencimento: dataSelecionada,
-                            diaTodo: diaTodo,
-                            recorrencia: recorrencia 
-                          );
-
-                          if (dataSelecionada != null && idGerado != null) {
-                            DateTime dataAlarme = dataSelecionada!;
-                            if (diaTodo) {
-                              dataAlarme = DateTime(
-                                dataSelecionada!.year, 
-                                dataSelecionada!.month, 
-                                dataSelecionada!.day - 1, 
-                                9, 0
-                              );
-                            }
-
-                            if (dataAlarme.isAfter(DateTime.now())) {
-                              await NotificacaoService().agendarNotificacao(
-                                id: idGerado.hashCode.abs(), 
-                                titulo: diaTodo ? 'Amanhã: $nomeTarefa' : 'Lembrete de Tarefa',
-                                corpo: diaTodo ? 'Você tem uma tarefa pendente para amanhã!' : 'Sua tarefa está próxima do prazo.',
-                                dataAgendada: dataAlarme,
-                              );
-                            } else {
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: const Text('Aviso: A tarefa foi salva, mas o horário escolhido já passou. O alarme não tocará.'),
-                                    backgroundColor: Colors.orange.shade800,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
-                                    duration: const Duration(seconds: 4),
-                                  ),
+                          ],
+                        ),
+                      ),
+                        
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(context).colorScheme.primary,
+                          foregroundColor: Theme.of(context).colorScheme.onPrimary, 
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: Text(
+                          documentoAtual != null ? 'Atualizar Tarefa' : 'Adicionar Tarefa',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: () async {
+                          final String nomeTarefa = _controladorTexto.text.trim(); 
+                          
+                          if (nomeTarefa.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Row(
+                                  children: [
+                                    Icon(Icons.warning_amber_rounded, color: Colors.white),
+                                    SizedBox(width: 8),
+                                    Text('Por favor, dê um nome para a tarefa.'),
+                                  ],
+                                ),
+                                backgroundColor: Colors.orange.shade800,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                              ),
+                            );
+                            return; 
+                          }
+                  
+                          if (documentoAtual != null) {
+                            await _tarefaService.atualizarNomeTarefa(documentoAtual.id, nomeTarefa);
+                          } else {
+                            final idGerado = await _tarefaService.adicionarTarefa(
+                              nomeTarefa, 
+                              dataVencimento: dataSelecionada,
+                              diaTodo: diaTodo,
+                              recorrencia: recorrencia 
+                            );
+                  
+                            if (dataSelecionada != null && idGerado != null) {
+                              DateTime dataAlarme = dataSelecionada!;
+                              if (diaTodo) {
+                                dataAlarme = DateTime(
+                                  dataSelecionada!.year, 
+                                  dataSelecionada!.month, 
+                                  dataSelecionada!.day - 1, 
+                                  9, 0
                                 );
+                              }
+                  
+                              if (dataAlarme.isAfter(DateTime.now())) {
+                                await NotificacaoService().agendarNotificacao(
+                                  id: idGerado.hashCode.abs(), 
+                                  titulo: diaTodo ? 'Amanhã: $nomeTarefa' : 'Lembrete de Tarefa',
+                                  corpo: diaTodo ? 'Você tem uma tarefa pendente para amanhã!' : 'Sua tarefa está próxima do prazo.',
+                                  dataAgendada: dataAlarme,
+                                );
+                              } else {
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text('Aviso: A tarefa foi salva, mas o horário escolhido já passou. O alarme não tocará.'),
+                                      backgroundColor: Colors.orange.shade800,
+                                      behavior: SnackBarBehavior.floating,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                                      duration: const Duration(seconds: 4),
+                                    ),
+                                  );
+                                }
                               }
                             }
                           }
-                        }
-                        _controladorTexto.text = '';
-                        if (context.mounted) Navigator.of(context).pop();
-                      },
-                    )
-                  ],
+                          _controladorTexto.text = '';
+                          
+                          if (context.mounted) {
+                            Navigator.of(context).pop();
+                            
+                            // --- FEEDBACK VISUAL DE SUCESSO AQUI ---
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Row(
+                                  children: [
+                                    const Icon(Icons.check_circle_outline, color: Colors.white),
+                                    const SizedBox(width: 8),
+                                    Text(documentoAtual != null ? 'Tarefa atualizada!' : 'Tarefa criada com sucesso!'),
+                                  ],
+                                ),
+                                backgroundColor: Colors.green.shade600, // Verde para indicar sucesso!
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        },
+                      )
+                    ],
+                  ),
                 ),
               );
             }
@@ -500,7 +521,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     ],
                   ),
                   
-                  // --- O BOTÃO MÁGICO DE TEMA CLARO / ESCURO ---
                   Container(
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -514,7 +534,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                         color: Theme.of(context).colorScheme.primary,
                       ),
                       onPressed: () {
-                        // Inverte o tema atual no nosso "controle remoto"
                         if (MyApp.themeNotifier.value == ThemeMode.system) {
                           final isSystemDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
                           MyApp.themeNotifier.value = isSystemDark ? ThemeMode.light : ThemeMode.dark;
