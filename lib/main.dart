@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // <-- IMPORT NECESSÁRIO PARA VERIFICAR O LOGIN
 import 'tarefa_item.dart';
 import 'tarefa_service.dart';
 import 'notificacao_service.dart';
+import 'login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -62,7 +64,21 @@ class MyApp extends StatelessWidget {
             fontFamily: 'Roboto', 
           ),
           
-          home: const TodoListScreen(),
+          // --- O PORTÃO DE ENTRADA DO APLICATIVO ---
+          home: StreamBuilder<User?>(
+            stream: FirebaseAuth.instance.authStateChanges(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              }
+              // Se tiver dados (usuário logado), vai para a tela de tarefas
+              if (snapshot.hasData) {
+                return const TodoListScreen();
+              }
+              // Se não, vai para o login
+              return const LoginScreen();
+            },
+          ),
         );
       }
     );
@@ -122,7 +138,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     left: 24,
                     right: 24,
                     bottom: MediaQuery.of(ctx).viewInsets.bottom + 24),
-                // --- CORREÇÃO DO OVERFLOW (A FITA ZEBRADA) ---
                 child: SingleChildScrollView( 
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -178,7 +193,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                           children: [
                             SwitchListTile(
                               title: const Text('Dia todo', style: TextStyle(fontWeight: FontWeight.w500)),
-                              subtitle: Text('Avisa no dia anterior às 09:00', style: TextStyle(fontSize: 12)),
+                              subtitle: const Text('Avisa no dia anterior às 09:00', style: TextStyle(fontSize: 12)),
                               value: diaTodo,
                               activeColor: Theme.of(context).colorScheme.primary,
                               onChanged: (bool valor) {
@@ -359,7 +374,6 @@ class _TodoListScreenState extends State<TodoListScreen> {
                           if (context.mounted) {
                             Navigator.of(context).pop();
                             
-                            // --- FEEDBACK VISUAL DE SUCESSO AQUI ---
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Row(
@@ -369,7 +383,7 @@ class _TodoListScreenState extends State<TodoListScreen> {
                                     Text(documentoAtual != null ? 'Tarefa atualizada!' : 'Tarefa criada com sucesso!'),
                                   ],
                                 ),
-                                backgroundColor: Colors.green.shade600, // Verde para indicar sucesso!
+                                backgroundColor: Colors.green.shade600, 
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 margin: const EdgeInsets.only(bottom: 20, left: 20, right: 20),
@@ -493,6 +507,11 @@ class _TodoListScreenState extends State<TodoListScreen> {
     return false;
   }
 
+  // --- Função para deslogar do app ---
+  Future<void> _fazerLogout() async {
+    await FirebaseAuth.instance.signOut();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -521,27 +540,43 @@ class _TodoListScreenState extends State<TodoListScreen> {
                     ],
                   ),
                   
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                      shape: BoxShape.circle,
-                    ),
-                    child: IconButton(
-                      icon: Icon(
-                        Theme.of(context).brightness == Brightness.dark 
-                            ? Icons.light_mode 
-                            : Icons.dark_mode_outlined,
-                        color: Theme.of(context).colorScheme.primary,
+                  Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Theme.of(context).brightness == Brightness.dark 
+                                ? Icons.light_mode 
+                                : Icons.dark_mode_outlined,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          onPressed: () {
+                            if (MyApp.themeNotifier.value == ThemeMode.system) {
+                              final isSystemDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
+                              MyApp.themeNotifier.value = isSystemDark ? ThemeMode.light : ThemeMode.dark;
+                            } else {
+                              MyApp.themeNotifier.value = MyApp.themeNotifier.value == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+                            }
+                          },
+                        ),
                       ),
-                      onPressed: () {
-                        if (MyApp.themeNotifier.value == ThemeMode.system) {
-                          final isSystemDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
-                          MyApp.themeNotifier.value = isSystemDark ? ThemeMode.light : ThemeMode.dark;
-                        } else {
-                          MyApp.themeNotifier.value = MyApp.themeNotifier.value == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-                        }
-                      },
-                    ),
+                      const SizedBox(width: 8),
+                      // Botão de Logout adicionado ao lado do botão de tema
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.logout, color: Colors.red.shade400),
+                          onPressed: _fazerLogout,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
